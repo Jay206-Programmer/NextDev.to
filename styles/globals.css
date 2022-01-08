@@ -201,7 +201,7 @@ button.btn-logo {
   border-radius: 50%;
   width: 50px;
   height: 50px;
-  animation: spin 1s linear infinite;
+  animation: spin 0.75s linear infinite;
 }
 
 @keyframes spin {
@@ -260,3 +260,10 @@ input[type="file"] {
 }
 
 .hidden { display:  none; }
+
+.icon {
+  padding-right:10px;
+  font-size:20px; 
+  display:flex;
+  justify-content:center;
+}
