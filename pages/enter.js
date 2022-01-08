@@ -1,4 +1,4 @@
-export default function enter() {
+export default function EnterPage() {
   return (
     <main>
       <h1>Sign In</h1>
