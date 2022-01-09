@@ -11,8 +11,9 @@ import { FcGoogle } from "react-icons/fc";
 import debounce from "lodash.debounce";
 
 //* Main Component
-export default function Enter(props) {
+export default function Auth(props) {
   const { user, username } = useContext(UserContext);
+  const [changeUsername, setChangeUsername] = useState(false);
 
   // 1. user signed out <SignInButton />
   // 2. user signed in, but missing username <UsernameForm />
@@ -23,7 +24,18 @@ export default function Enter(props) {
         !username ? (
           <UsernameForm />
         ) : (
-          <SignOutButton />
+          <>
+            <h3>Username: <span className="text-info" style={{marginLeft:"1rem"}}>{username}</span></h3>
+            {changeUsername ? (
+              <UsernameForm
+                change={true}
+                setChangeUsername={setChangeUsername}
+              />
+            ) : (
+              <ChangeUserName setChangeUsername={setChangeUsername} />
+            )}
+            <SignOutButton />
+          </>
         )
       ) : (
         <SignInButton />
@@ -54,7 +66,7 @@ function SignOutButton() {
 }
 
 //? Handle Username Form
-function UsernameForm() {
+function UsernameForm({ change, setChangeUsername }) {
   const [formValue, setFormValue] = useState("");
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,7 +89,14 @@ function UsernameForm() {
     });
     batch.set(usernameDoc, { uid: user.uid });
 
+    //? Deleting the old username from the collection as it's no longer occupied
+    change && batch.delete(doc(firestore, "usernames", username));
+    
+    //? Committing all three changes
     await batch.commit();
+
+    //? Hide the form
+    setChangeUsername(false);
   };
 
   const onChange = (e) => {
@@ -122,13 +141,14 @@ function UsernameForm() {
   );
 
   return (
-    !username && (
+    (!username || change) && (
       <section>
-        <h3>Choose Username</h3>
+        <h3>{change ? "Change" : "Choose"} Username</h3>
         <form onSubmit={onSubmit}>
           <input
             name="username"
             placeholder="Enter Username"
+            autoComplete="off"
             value={formValue}
             onChange={onChange}
           />
@@ -139,6 +159,9 @@ function UsernameForm() {
           />
           <button type="submit" className="btn-green" disabled={!isValid}>
             Choose
+          </button>
+          <button className="btn-red" onClick={() => setChangeUsername(false)}>
+            Cancel
           </button>
 
           <h3>Debug State</h3>
@@ -161,10 +184,19 @@ function UsernameMessage({ username, isValid, loading }) {
   } else if (isValid) {
     return <p className="text-success">{username} is available!</p>;
   } else if (username.length > 0 && username.length < 3) {
-    return <p className="text-info">Username must be 3 to 15 characters long!</p>;
+    return (
+      <p className="text-info">Username must be 3 to 15 characters long!</p>
+    );
   } else if (username && !isValid) {
     return <p className="text-danger">That username is taken!</p>;
   } else {
     return <p></p>;
   }
+}
+
+//? Change Username Button
+function ChangeUserName({ setChangeUsername }) {
+  return (
+    <button onClick={() => setChangeUsername(true)}>Change Username</button>
+  );
 }
