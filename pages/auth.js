@@ -25,7 +25,12 @@ export default function Auth(props) {
           <UsernameForm />
         ) : (
           <>
-            <h3>Username: <span className="text-info" style={{marginLeft:"1rem"}}>{username}</span></h3>
+            <h3>
+              Username:{" "}
+              <span className="text-info" style={{ marginLeft: "1rem" }}>
+                {username}
+              </span>
+            </h3>
             {changeUsername ? (
               <UsernameForm
                 change={true}
@@ -70,6 +75,7 @@ function UsernameForm({ change, setChangeUsername }) {
   const [formValue, setFormValue] = useState("");
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
+  const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
 
   const { user, username } = useContext(UserContext);
 
@@ -91,18 +97,18 @@ function UsernameForm({ change, setChangeUsername }) {
 
     //? Deleting the old username from the collection as it's no longer occupied
     change && batch.delete(doc(firestore, "usernames", username));
-    
+
     //? Committing all three changes
     await batch.commit();
 
     //? Hide the form
-    setChangeUsername(false);
+    change && setChangeUsername(false);
   };
 
   const onChange = (e) => {
     //? Force form value typed in form to match correct format
     const val = e.target.value.toLowerCase();
-    const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
+    // const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
 
     //? Only set form value if length is < 3 OR it passes regex
     if (val.length < 3) {
@@ -112,10 +118,14 @@ function UsernameForm({ change, setChangeUsername }) {
     }
 
     if (re.test(val)) {
-      setFormValue(val);
+      // setFormValue(val);
       setLoading(true);
       setIsValid(false);
+    } else {
+      setLoading(false);
+      setIsValid(false);
     }
+    setFormValue(val);
   };
 
   //? Check if username exists in database
@@ -128,7 +138,7 @@ function UsernameForm({ change, setChangeUsername }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const checkUsername = useCallback(
     debounce(async (username) => {
-      if (username.length >= 3) {
+      if (username.length >= 3 && re.test(username)) {
         const docRef = doc(firestore, "usernames", username);
         const docSnap = await getDoc(docRef);
 
@@ -136,7 +146,7 @@ function UsernameForm({ change, setChangeUsername }) {
         setIsValid(!docSnap.exists()); //? Set true if no username exists for current val, else false
         setLoading(false);
       }
-    }, 500),
+    }, 1000),
     []
   );
 
@@ -156,6 +166,7 @@ function UsernameForm({ change, setChangeUsername }) {
             username={formValue}
             isValid={isValid}
             loading={loading}
+            re={re}
           />
           <button type="submit" className="btn-green" disabled={!isValid}>
             Choose
@@ -178,17 +189,17 @@ function UsernameForm({ change, setChangeUsername }) {
   );
 }
 
-function UsernameMessage({ username, isValid, loading }) {
+function UsernameMessage({ username, isValid, loading, re }) {
   if (loading) {
     return <p>Checking...</p>;
   } else if (isValid) {
     return <p className="text-success">{username} is available!</p>;
-  } else if (username.length > 0 && username.length < 3) {
-    return (
-      <p className="text-info">Username must be 3 to 15 characters long!</p>
-    );
+  } else if (!re.test(username)) {
+    return <p className="text-danger">Invalid Username!</p>;
   } else if (username && !isValid) {
-    return <p className="text-danger">That username is taken!</p>;
+    return (
+      <p className="text-danger">That username is taken, try a new one!</p>
+    );
   } else {
     return <p></p>;
   }
