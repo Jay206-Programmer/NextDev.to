@@ -88,11 +88,15 @@ function UsernameForm({ change, setChangeUsername }) {
 
     //? Commit both docs together as a batch write.
     const batch = writeBatch(firestore);
-    batch.set(userDoc, {
-      username: formValue,
-      photoURL: user.photoURL,
-      displayName: user.displayName,
-    });
+    !change
+      ? batch.set(userDoc, {
+          username: formValue,
+          photoURL: user.photoURL,
+          displayName: user.displayName,
+        })
+      : batch.update(userDoc, {
+          username: formValue,
+        });
     batch.set(usernameDoc, { uid: user.uid });
 
     //? Deleting the old username from the collection as it's no longer occupied
@@ -131,7 +135,7 @@ function UsernameForm({ change, setChangeUsername }) {
   //? Check if username exists in database
   useEffect(() => {
     checkUsername(formValue);
-  }, [formValue]);
+  }, [checkUsername, formValue]);
 
   //? Hit the database for username match after each debounced change
   //! useCallback is required for debounce to work
@@ -146,7 +150,7 @@ function UsernameForm({ change, setChangeUsername }) {
         setIsValid(!docSnap.exists()); //? Set true if no username exists for current val, else false
         setLoading(false);
       }
-    }, 1000),
+    }, 500),
     []
   );
 
